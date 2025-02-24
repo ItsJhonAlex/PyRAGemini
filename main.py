@@ -3,6 +3,7 @@ from typing import List, Optional
 from src.document_loader import load_documents_from_dir
 from src.text_splitter import split_documents
 from src.embedings import create_embeddings_model
+from src.indexing import IndexManager  # Corregida la importación
 from langchain.schema import Document
 from dotenv import load_dotenv
 
@@ -77,19 +78,33 @@ def main():
         print("\nError: No document chunks to process")
         return
     
-    print(f"\nSuccessfully processed {len(chunks)} chunks")
+    # Create index manager
+    index_manager = IndexManager()
     
-    # Generate embeddings
-    embeddings = generate_embeddings_for_chunks(chunks)
-    
-    if not embeddings:
-        print("\nError: Failed to generate embeddings")
+    # Create and save index
+    try:
+        print("\n3. Creating vector index")
+        db = index_manager.create_index(chunks)
+        index_manager.save_index(db, "documentos_index")
+        
+        # Test search
+        print("\n4. Testing search functionality")
+        query = "¿Qué es el aprendizaje automático?"
+        results = index_manager.similarity_search(db, query)
+        
+        print(f"\nTop {len(results)} results for query: '{query}'")
+        for i, doc in enumerate(results, 1):
+            print(f"\nResult {i}:")
+            print(f"Content: {doc.page_content[:200]}...")
+            
+    except Exception as e:
+        print(f"\nError: {str(e)}")
         return
     
     print("\nRAG Pipeline completed successfully!")
     print(f"Total documents processed: {len(chunks)}")
-    print(f"Total embeddings generated: {len(embeddings)}")
-    print(f"Embedding dimension: {len(embeddings[0])}")
+    print("Vector index created and saved")
+    print("Search functionality tested")
 
 if __name__ == "__main__":
     main()
